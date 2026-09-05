@@ -13,7 +13,10 @@ async function main() {
   const operations = [];
 
   console.log("Launching stealth browser to fetch DoorDash Engineering API...");
-  const browser = await puppeteer.launch({ headless: "new" });
+  const browser = await puppeteer.launch({ 
+    headless: "new",
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
   const page = await browser.newPage();
   
   let pageNum = 1;

@@ -14,7 +14,7 @@ export async function getCollection() {
   if (collection) return collection;
 
   if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI not found in .env.local");
+    throw new Error("MONGODB_URI environment variable is missing! Please set it in .env.local or GitHub Secrets.");
   }
 
   client = new MongoClient(process.env.MONGODB_URI);
