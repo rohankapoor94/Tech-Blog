@@ -40,11 +40,11 @@ async function main() {
       if (true) { // Skip existing check since upsert handles it
         // Extract date from URL: e.g. /publication/2026/06/21/...
         const dateMatch = link.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
-        let publishDate = new Date().toISOString();
-        if (dateMatch) {
-          const [_, year, month, day] = dateMatch;
-          publishDate = new Date(`${year}-${month}-${day}T12:00:00Z`).toISOString();
+        if (!dateMatch) {
+          throw new Error(`Missing publication date for Deezer article: ${link}`);
         }
+        const [_, year, month, day] = dateMatch;
+        const publishDate = new Date(`${year}-${month}-${day}T12:00:00Z`).toISOString();
 
         operations.push({
           updateOne: {

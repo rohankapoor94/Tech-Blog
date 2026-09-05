@@ -99,10 +99,10 @@ async function main() {
     for (const item of extractedArticles) {
       const fullLink = ZOMATO_URL + item.link;
       
-      let publishDate = new Date().toISOString();
-      if (item.date) {
-        publishDate = new Date(item.date).toISOString();
+      if (!item.date) {
+        throw new Error(`Missing publication date for Zomato article: ${fullLink}`);
       }
+      const publishDate = new Date(item.date).toISOString();
       
       operations.push({
         updateOne: {

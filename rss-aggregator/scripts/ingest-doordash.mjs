@@ -54,6 +54,9 @@ async function main() {
     for (const post of posts) {
       const title = post.title.rendered;
       const link = post.link;
+      if (!post.date) {
+        throw new Error(`Missing publication date for DoorDash article: ${link}`);
+      }
       // WordPress dates are in ISO 8601 local time, e.g. "2026-08-27T22:04:46"
       // We append Z to make them valid UTC dates since DoorDash blogs don't strictly require timezone accuracy
       const publishDate = post.date + "Z";

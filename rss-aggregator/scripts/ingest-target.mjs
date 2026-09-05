@@ -46,7 +46,10 @@ async function main() {
       const fullLink = `${TARGET_URL}/blog/${post.content.page_url}`;
       
       const title = post.content.headline || "Target Engineering Blog";
-      const publishDate = post.activation_date || new Date().toISOString();
+      if (!post.activation_date) {
+        throw new Error(`Missing publication date for Target article: ${fullLink}`);
+      }
+      const publishDate = post.activation_date;
 
       operations.push({
         updateOne: {

@@ -44,6 +44,9 @@ async function main() {
       for (const post of posts) {
         const title = post.title.rendered.replace(/&#8211;/g, "-").replace(/&#8217;/g, "'").replace(/&amp;/g, "&");
         const link = post.link;
+        if (!post.date) {
+          throw new Error(`Missing publication date for RisingStack article: ${link}`);
+        }
         const publishDate = post.date + "Z";
         
         operations.push({

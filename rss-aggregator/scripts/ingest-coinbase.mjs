@@ -111,10 +111,10 @@ async function main() {
         const slug = link.substring(link.lastIndexOf("/") + 1);
         const title = formatTitleFromSlug(slug);
         
-        let publishDate = new Date().toISOString();
-        if (dateStr) {
-          publishDate = new Date(`${dateStr} UTC`).toISOString();
+        if (!dateStr) {
+          throw new Error(`Missing publication date for Coinbase article: ${link}`);
         }
+        const publishDate = new Date(`${dateStr} UTC`).toISOString();
         
         operations.push({
           updateOne: {
