@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "ingest": "node scripts/run-all.mjs"
+    "ingest": "node scripts/ingest.mjs"
   },
   "dependencies": {
     "date-fns": "^4.4.0",

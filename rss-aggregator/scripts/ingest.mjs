@@ -194,13 +194,20 @@ async function main() {
   const scripts = readdirSync(scriptDir)
     .filter(file => file.startsWith("ingest-") && file.endsWith(".mjs"));
     
+  let hasError = false;
   for (const script of scripts) {
     console.log(`\n▶️  Executing custom scraper: ${script}`);
     try {
       execSync(`node scripts/${script}`, { cwd: PROJECT_ROOT, stdio: "inherit" });
     } catch (error) {
       console.warn(`⚠️  Failed to execute ${script}. Skipping...`);
+      hasError = true;
     }
+  }
+
+  if (hasError) {
+    console.error(`\n❌ One or more ingestion scripts failed. See logs above.`);
+    process.exit(1);
   }
 
   console.log(`\n🎉 All ingestion tasks complete! Data written to MongoDB!`);
