@@ -1,7 +1,7 @@
 <div align="center">
   <h1>🚀 Custom Tech Blog RSS Aggregator</h1>
   <p>
-    A personalized, fully automated aggregator for the best Engineering Blogs and Tech Resources on the internet. Built with Next.js, Puppeteer, MongoDB, and GitHub Actions.
+    A personalized, fully automated aggregator for the best Engineering Blogs and Tech Resources on the internet. Built with Next.js 16, Puppeteer, MongoDB, and GitHub Actions.
   </p>
 
   <p>
@@ -19,15 +19,15 @@ This repository contains a full-stack web application designed to curate, aggreg
 
 - **Hybrid Ingestion Engine**:
   - **Standard RSS**: Parses standard feeds provided via an OPML file (`feeds.opml`) using `rss-parser`.
-  - **Custom Scrapers**: Puppeteer and API-based scrapers for stubborn sites (Coinbase, Zomato, DoorDash, LinkedIn, Target, Deezer, RisingStack).
-- **Automated CI/CD Pipeline**: GitHub Actions runs the orchestrator script (`npm run ingest`) periodically to keep the database fresh.
+  - **Custom Scrapers**: Puppeteer and API-based scrapers for stubborn sites (Coinbase, Zomato, DoorDash, LinkedIn, Target, RisingStack).
+- **Automated CI/CD Pipeline**: GitHub Actions runs the orchestrator script (`npm run ingest`) every 4 hours to keep the database fresh.
 - **Resilient Orchestration**: Custom scraper errors are isolated. If a site changes its layout and a scraper breaks, the orchestrator catches it, logs a warning, and continues scraping the remaining sites.
-- **Modern Tech Stack**: Built with Next.js (App Router), React, and Tailwind CSS.
-- **Premium UI/UX**: Designed with a sleek dark mode, glassmorphism components, and a highly responsive grid layout.
+- **Modern Tech Stack**: Built with Next.js 16 (App Router), React 19, and Tailwind CSS.
+- **Premium UI/UX**: Designed with a sleek dark mode, glassmorphism components, and a highly responsive layout.
 
 ## 🛠️ Architecture & Tech Stack
 
-- **Frontend**: Next.js 14, React, Tailwind CSS
+- **Frontend**: Next.js 16, React 19, Tailwind CSS, Lucide Icons
 - **Backend / API**: Next.js Route Handlers
 - **Database**: MongoDB Atlas
 - **Scraping**: Puppeteer, `puppeteer-extra-plugin-stealth`, native `fetch` API, XML/JSON parsing
@@ -36,21 +36,24 @@ This repository contains a full-stack web application designed to curate, aggreg
 ## 📁 Repository Structure
 
 ```text
+├── .github/workflows/          # GitHub Actions configurations (cron & manual triggers)
+│   └── ingest.yml
 ├── feeds.opml                  # The master OPML list of standard RSS feeds
+├── favourite_companies.json    # Curated favourite companies dataset
 ├── rss-aggregator/             # Next.js Application
-│   ├── .github/workflows/      # GitHub Action configurations for automated cron ingestion
-│   ├── scripts/                # The brain of the operation: Ingestion & Database Scripts
+│   ├── scripts/                # Ingestion & Database Scripts
 │   │   ├── ingest.mjs          # Main orchestrator (Parses OPML & runs custom scrapers)
-│   │   ├── ingest-*.mjs        # Custom scrapers for sites lacking valid RSS (e.g., Zomato, Coinbase)
+│   │   ├── ingest-*.mjs        # Custom scrapers (e.g. Coinbase, DoorDash, Zomato, Target, LinkedIn)
 │   │   └── db.mjs              # MongoDB connection utilities
 │   ├── src/app/                # Next.js App Router (UI & API routes)
 │   └── package.json            # Project dependencies and npm scripts
+└── README.md
 ```
 
 ## 🚀 Getting Started (Local Development)
 
 ### Prerequisites
-- Node.js (v18 or higher)
+- Node.js (v20 or higher)
 - MongoDB Cluster (e.g. MongoDB Atlas)
 
 ### Installation
@@ -84,14 +87,26 @@ This repository contains a full-stack web application designed to curate, aggreg
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-## ⚙️ Automated Ingestion
+## ☁️ Deployment (Vercel)
 
-The repository uses GitHub Actions (`.github/workflows/ingest.yml`) to automatically update the feed.
-To enable this on your fork:
+Deploying to [Vercel](https://vercel.com) is simple with the nested directory configuration:
+
+1. Import your GitHub repository into Vercel.
+2. Under **Project Settings** > **General**:
+   - Set **Root Directory** to `rss-aggregator`.
+3. Under **Environment Variables**:
+   - Add `MONGODB_URI` with your MongoDB Atlas connection string.
+4. Deploy! Next.js will build and deploy automatically on every push.
+
+## ⚙️ Automated Ingestion (GitHub Actions)
+
+The repository uses GitHub Actions (`.github/workflows/ingest.yml`) to automatically update the feed every 4 hours (`0 */4 * * *` UTC).
+
+To enable this on your fork/repository:
 1. Go to your repository **Settings** > **Secrets and variables** > **Actions**.
-2. Add a new repository secret named `MONGODB_URI` with your connection string.
-3. The action is scheduled to run periodically via a cron job, but can also be manually triggered from the Actions tab.
+2. Add a repository secret named `MONGODB_URI` with your connection string.
+3. The workflow runs automatically on schedule, but can also be manually triggered anytime via the **Actions** tab with the **Run workflow** button.
 
 ## 📝 Acknowledgment
 
-This entire repository, including the robust web scrapers, database integrations, React components, and even this README, was conceptualized and written in collaboration with an advanced AI agent.
+This entire repository, including the robust web scrapers, database integrations, React components, and automated pipelines, was conceptualized and developed in collaboration with an advanced AI agent.
