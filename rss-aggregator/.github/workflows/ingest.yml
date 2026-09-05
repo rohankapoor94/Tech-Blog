@@ -1,0 +1,36 @@
+name: Daily RSS Ingestion
+
+on:
+  # Run automatically every 4 hours
+  schedule:
+    - cron: '0 */4 * * *'
+  
+  # Allow manual triggering from the GitHub Actions dashboard
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # We install chromium dependencies so Puppeteer (headless Chrome) works flawlessly on Linux
+      - name: Install Puppeteer system dependencies
+        run: npx puppeteer browsers install chrome
+
+      - name: Run Ingestion Scripts
+        run: npm run ingest
+        env:
+          # Your MongoDB connection string needs to be saved in GitHub Repository Settings -> Secrets and variables -> Actions
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}

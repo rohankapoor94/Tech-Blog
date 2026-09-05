@@ -1,0 +1,287 @@
+[
+  {
+    "name": "Agoda",
+    "link": "https://medium.com/agoda-engineering",
+    "blogCount": 7
+  },
+  {
+    "name": "Airbnb",
+    "link": "https://medium.com/airbnb-engineering",
+    "blogCount": 4
+  },
+  {
+    "name": "Amazon Science",
+    "link": "https://www.amazon.science/blog",
+    "blogCount": 8
+  },
+  {
+    "name": "Atlassian",
+    "link": "https://www.atlassian.com/blog/developer",
+    "blogCount": 8
+  },
+  {
+    "name": "Auth0",
+    "link": "https://auth0.com/blog/",
+    "blogCount": 3
+  },
+  {
+    "name": "Booking.com",
+    "link": "https://blog.booking.com/",
+    "blogCount": 5
+  },
+  {
+    "name": "Canva",
+    "link": "https://www.canva.dev/blog/engineering/",
+    "blogCount": 8
+  },
+  {
+    "name": "Coinbase",
+    "link": "https://www.coinbase.com/blog/landing/engineering",
+    "blogCount": 6
+  },
+  {
+    "name": "Discord",
+    "link": "https://blog.discord.com/",
+    "blogCount": 5
+  },
+  {
+    "name": "DoorDash",
+    "link": "https://careersatdoordash.com/engineering-blog/",
+    "blogCount": 9
+  },
+  {
+    "name": "Dropbox",
+    "link": "https://dropbox.tech/",
+    "blogCount": 6
+  },
+  {
+    "name": "Ebay",
+    "link": "https://innovation.ebayinc.com/tech/",
+    "blogCount": 8
+  },
+  {
+    "name": "Expedia",
+    "link": "https://medium.com/expedia-group-tech",
+    "blogCount": 5
+  },
+  {
+    "name": "Facebook",
+    "link": "https://engineering.fb.com/",
+    "blogCount": 22
+  },
+  {
+    "name": "Figma",
+    "link": "https://www.figma.com/blog/engineering/",
+    "blogCount": 8
+  },
+  {
+    "name": "Flipkart",
+    "link": "https://blog.flipkart.tech/",
+    "blogCount": 6
+  },
+  {
+    "name": "GitHub",
+    "link": "https://github.blog/engineering/",
+    "blogCount": 7
+  },
+  {
+    "name": "GoDaddy",
+    "link": "https://www.godaddy.com/resources/category/engineering",
+    "blogCount": 6
+  },
+  {
+    "name": "Google Research",
+    "link": "https://research.google/blog/",
+    "blogCount": 7
+  },
+  {
+    "name": "Grab",
+    "link": "https://engineering.grab.com/",
+    "blogCount": 17
+  },
+  {
+    "name": "Gusto",
+    "link": "https://engineering.gusto.com/",
+    "blogCount": 4
+  },
+  {
+    "name": "HashNode",
+    "link": "https://engineering.hashnode.com/",
+    "blogCount": 8
+  },
+  {
+    "name": "Hostinger",
+    "link": "https://www.hostinger.com/blog/engineering",
+    "blogCount": 3
+  },
+  {
+    "name": "Hotstar",
+    "link": "https://blog.hotstar.com/",
+    "blogCount": 3
+  },
+  {
+    "name": "HubSpot",
+    "link": "https://product.hubspot.com/blog/topic/engineering",
+    "blogCount": 8
+  },
+  {
+    "name": "Instacart",
+    "link": "https://tech.instacart.com/",
+    "blogCount": 15
+  },
+  {
+    "name": "Instagram",
+    "link": "https://engineering.fb.com/tag/instagram/",
+    "blogCount": 6
+  },
+  {
+    "name": "LinkedIn",
+    "link": "https://engineering.linkedin.com/blog",
+    "blogCount": 20
+  },
+  {
+    "name": "Lyft",
+    "link": "https://eng.lyft.com/",
+    "blogCount": 12
+  },
+  {
+    "name": "Medium",
+    "link": "https://medium.engineering/",
+    "blogCount": 9
+  },
+  {
+    "name": "Netflix",
+    "link": "https://netflixtechblog.com/",
+    "blogCount": 21
+  },
+  {
+    "name": "Notion",
+    "link": "https://www.notion.com/blog",
+    "blogCount": 6
+  },
+  {
+    "name": "PayPal",
+    "link": "https://medium.com/paypal-tech",
+    "blogCount": 8
+  },
+  {
+    "name": "Pinterest",
+    "link": "https://medium.com/pinterest-engineering",
+    "blogCount": 8
+  },
+  {
+    "name": "Quora",
+    "link": "https://engineering.quora.com/",
+    "blogCount": 4
+  },
+  {
+    "name": "Razorpay",
+    "link": "https://engineering.razorpay.com/",
+    "blogCount": 9
+  },
+  {
+    "name": "Reddit",
+    "link": "https://www.reddit.com/r/RedditEng/",
+    "blogCount": 8
+  },
+  {
+    "name": "Salesforce",
+    "link": "https://engineering.salesforce.com/",
+    "blogCount": 8
+  },
+  {
+    "name": "Shopify",
+    "link": "https://shopify.engineering/",
+    "blogCount": 7
+  },
+  {
+    "name": "Slack",
+    "link": "https://slack.engineering/",
+    "blogCount": 14
+  },
+  {
+    "name": "Snap",
+    "link": "https://eng.snap.com/blog",
+    "blogCount": 6
+  },
+  {
+    "name": "Spotify",
+    "link": "https://engineering.atspotify.com/",
+    "blogCount": 5
+  },
+  {
+    "name": "Squarespace",
+    "link": "https://engineering.squarespace.com/",
+    "blogCount": 4
+  },
+  {
+    "name": "Stripe",
+    "link": "https://stripe.com/blog/engineering",
+    "blogCount": 5
+  },
+  {
+    "name": "Swiggy",
+    "link": "https://bytes.swiggy.com/",
+    "blogCount": 17
+  },
+  {
+    "name": "Target",
+    "link": "https://tech.target.com/",
+    "blogCount": 6
+  },
+  {
+    "name": "Timescale",
+    "link": "https://www.timescale.com/blog",
+    "blogCount": 8
+  },
+  {
+    "name": "Tinder",
+    "link": "https://medium.com/tinder",
+    "blogCount": 4
+  },
+  {
+    "name": "Twitch",
+    "link": "https://blog.twitch.tv/en/tags/engineering/",
+    "blogCount": 4
+  },
+  {
+    "name": "Uber",
+    "link": "https://eng.uber.com/",
+    "blogCount": 21
+  },
+  {
+    "name": "Vimeo",
+    "link": "https://medium.com/vimeo-engineering-blog",
+    "blogCount": 2
+  },
+  {
+    "name": "Walmart",
+    "link": "https://medium.com/walmartglobaltech",
+    "blogCount": 5
+  },
+  {
+    "name": "Twitter (X)",
+    "link": "https://blog.x.com/engineering/en_us",
+    "blogCount": 8
+  },
+  {
+    "name": "Yelp",
+    "link": "https://engineeringblog.yelp.com/",
+    "blogCount": 5
+  },
+  {
+    "name": "Zendesk",
+    "link": "https://zendesk.engineering/",
+    "blogCount": 3
+  },
+  {
+    "name": "Zillow",
+    "link": "https://www.zillow.com/tech/",
+    "blogCount": 4
+  },
+  {
+    "name": "Zomato",
+    "link": "https://blog.zomato.com/category/technology",
+    "blogCount": 7
+  }
+]

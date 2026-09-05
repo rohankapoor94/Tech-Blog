@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/* ----- Design Tokens ----- */
+:root {
+  --color-accent: #D9531E;
+  --color-accent-dark: #B8441A;
+  --color-accent-light: #E8784A;
+  --color-header-gradient-start: #C0392B;
+  --color-header-gradient-end: #D9531E;
+  --color-bg: #E8E0D8;
+  --color-card-bg: #FFFFFF;
+  --color-row-even: #FAFAFA;
+  --color-row-odd: #F3F0ED;
+  --color-text-primary: #2C2C2C;
+  --color-text-secondary: #6B6B6B;
+  --color-text-link: #333333;
+  --color-border: #D5CEC6;
+  --color-sidebar-bg: #F5F0EB;
+  --color-sidebar-hover: #EDE6DD;
+  --color-sidebar-active: #D9531E;
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ----- Base ----- */
+body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ----- Scrollbar ----- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C0B8AE;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A89E94;
+}
+
+/* ----- Article Rows ----- */
+.article-row:nth-child(even) {
+  background-color: var(--color-row-even);
+}
+.article-row:nth-child(odd) {
+  background-color: var(--color-row-odd);
+}
+.article-row:hover {
+  background-color: #EDE8E2;
+}
+
+/* ----- Source Sidebar Item ----- */
+.source-item {
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.source-item:hover {
+  background-color: var(--color-sidebar-hover);
+}
+.source-item.active {
+  background-color: var(--color-sidebar-active);
+  color: white;
+}
+
+/* ----- Date Header Bar ----- */
+.date-header {
+  background: linear-gradient(135deg, var(--color-header-gradient-start), var(--color-header-gradient-end));
+  color: white;
+  font-family: var(--font-mono), "Courier New", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ----- Filter input ----- */
+.filter-input {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  transition: all 0.2s ease;
+}
+.filter-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+.filter-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ----- Load More Button ----- */
+.load-more-btn {
+  background: var(--color-accent);
+  color: white;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.load-more-btn:hover {
+  background: var(--color-accent-dark);
+}
+.load-more-btn:active {
+  transform: scale(0.98);
+}
+
+/* ----- Animations ----- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.5s ease-in-out infinite;
+}
