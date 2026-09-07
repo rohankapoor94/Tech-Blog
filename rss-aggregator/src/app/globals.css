@@ -18,6 +18,22 @@
   --color-sidebar-bg: #F5F0EB;
   --color-sidebar-hover: #EDE6DD;
   --color-sidebar-active: #D9531E;
+  --color-row-hover: #EDE8E2;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-bg: #121212;
+  --color-card-bg: #1E1E1E;
+  --color-row-even: #181818;
+  --color-row-odd: #1F1F1F;
+  --color-text-primary: #E0E0E0;
+  --color-text-secondary: #A0A0A0;
+  --color-text-link: #FFFFFF;
+  --color-border: #333333;
+  --color-sidebar-bg: #1A1A1A;
+  --color-sidebar-hover: #2A2A2A;
+  --color-row-hover: #2A2A2A;
 }
 
 @theme inline {
@@ -57,7 +73,7 @@ body {
   background-color: var(--color-row-odd);
 }
 .article-row:hover {
-  background-color: #EDE8E2;
+  background-color: var(--color-row-hover);
 }
 
 /* ----- Source Sidebar Item ----- */

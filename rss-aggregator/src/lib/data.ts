@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { getArticlesCollection } from "./db";
+import { myCache } from "./cache";
 
 // ----- Types -----
 
@@ -10,6 +11,7 @@ export interface Article {
   source: string;
   publishDate: string; // ISO date string
   curated?: boolean; // true if imported from favourite_companies.json
+  category?: string;
 }
 
 /** Maps source name → blog homepage URL (from OPML htmlUrl) */
@@ -30,6 +32,8 @@ export interface ArticleQueryParams {
   favorites?: string[]; // list of favorite sources to rank higher
   favouritesOnly?: boolean; // when true, only show articles from favourite companies
   favouriteCompanies?: string[]; // list of favourite company names
+  category?: string;
+  mutedSources?: string[]; // sources to hide
 }
 
 export interface ArticleQueryResult {
@@ -42,6 +46,7 @@ export interface ArticleQueryResult {
 
 const SOURCES_META_PATH = path.join(process.cwd(), "data", "sources-meta.json");
 const FAV_COMPANIES_PATH = path.join(process.cwd(), "data", "favourite-companies-meta.json");
+const FEED_CATEGORIES_PATH = path.join(process.cwd(), "data", "feed-categories.json");
 
 // ----- Helpers -----
 
@@ -60,10 +65,19 @@ function readSourcesMeta(): SourceMeta {
 // ----- Public API -----
 
 export async function getArticles(params: ArticleQueryParams): Promise<ArticleQueryResult> {
-  const { sources, startDate, endDate, search, favouritesOnly, favouriteCompanies } = params;
+  const cacheKey = `articles_${JSON.stringify(params)}`;
+  const cached = myCache.get(cacheKey);
+  if (cached) return cached as ArticleQueryResult;
+
+  const { sources, startDate, endDate, search, favouritesOnly, favouriteCompanies, category } = params;
   const collection = await getArticlesCollection();
   
   const query: any = {};
+
+  // --- Step 0.5: Category filter ---
+  if (category && category !== "All") {
+    query.category = category;
+  }
 
   // --- Step 0: Favourites-only filter ---
   if (favouritesOnly && favouriteCompanies && favouriteCompanies.length > 0) {
@@ -95,6 +109,15 @@ export async function getArticles(params: ArticleQueryParams): Promise<ArticleQu
       $gte: start.toISOString(),
       $lte: end.toISOString()
     };
+  }
+
+  // --- Step 1.5: Muted sources ---
+  if (params.mutedSources && params.mutedSources.length > 0 && (!sources || sources.length === 0)) {
+    if (query.source && query.source.$in) {
+      query.source.$in = query.source.$in.filter((s: string) => !params.mutedSources!.includes(s));
+    } else {
+      query.source = { ...query.source, $nin: params.mutedSources };
+    }
   }
 
   // --- Step 2: Text search ---
@@ -157,13 +180,19 @@ export async function getArticles(params: ArticleQueryParams): Promise<ArticleQu
     return rest;
   });
 
-  return { articles: filtered, hasMore, totalFiltered };
+  const result = { articles: filtered, hasMore, totalFiltered };
+  myCache.set(cacheKey, result);
+  return result;
 }
 
 /**
  * Returns a distinct, sorted list of all source names in the dataset.
  */
 export async function getSources(): Promise<string[]> {
+  const cacheKey = "all_sources";
+  const cached = myCache.get(cacheKey);
+  if (cached) return cached as string[];
+
   const collection = await getArticlesCollection();
   
   // Aggregation pipeline to get unique sources and their latest publishDate
@@ -180,7 +209,9 @@ export async function getSources(): Promise<string[]> {
   ];
   
   const results = await collection.aggregate(pipeline).toArray();
-  return results.map(r => r._id);
+  const finalResult = results.map(r => r._id);
+  myCache.set(cacheKey, finalResult);
+  return finalResult;
 }
 
 /**
@@ -206,6 +237,10 @@ export async function getFavouriteCompanies(): Promise<FavouriteCompany[]> {
  * Returns curated articles grouped by company, sorted by latest date within each group.
  */
 export async function getCuratedByCompany(): Promise<{ company: string; link: string; articles: Article[] }[]> {
+  const cacheKey = "curated_articles";
+  const cached = myCache.get(cacheKey);
+  if (cached) return cached as any;
+
   const collection = await getArticlesCollection();
   
   const curatedDocs = await collection.find({ curated: true }).sort({ publishDate: -1 }).toArray();
@@ -230,5 +265,18 @@ export async function getCuratedByCompany(): Promise<{ company: string; link: st
     }))
     .sort((a, b) => a.company.localeCompare(b.company));
 
+  myCache.set(cacheKey, result, { ttl: 1000 * 60 * 60 * 4 }); // 4 hours TTL
   return result;
+}
+
+/**
+ * Returns the feed categories map from feed-categories.json.
+ */
+export async function getFeedCategoriesMap(): Promise<Record<string, string>> {
+  try {
+    const raw = readFileSync(FEED_CATEGORIES_PATH, "utf-8");
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }

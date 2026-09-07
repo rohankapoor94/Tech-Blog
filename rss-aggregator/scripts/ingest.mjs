@@ -24,6 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const OPML_PATH = path.resolve(PROJECT_ROOT, "..", "feeds.opml");
 const SOURCES_META_PATH = path.join(PROJECT_ROOT, "data", "sources-meta.json");
+const FEED_CATEGORIES_PATH = path.join(PROJECT_ROOT, "data", "feed-categories.json");
 const CONCURRENCY_LIMIT = 10; // Max parallel feed fetches
 const FETCH_TIMEOUT_MS = 15000; // 15 second timeout per feed
 
@@ -145,7 +146,15 @@ async function main() {
   );
   const feedResults = await runWithConcurrency(tasks, CONCURRENCY_LIMIT);
 
-  // 3. Prepare upsert operations
+  // 3. Load feed categories and prepare upsert operations
+  let feedCategories = {};
+  try {
+    feedCategories = JSON.parse(readFileSync(FEED_CATEGORIES_PATH, "utf-8"));
+    console.log(`📂 Loaded ${Object.keys(feedCategories).length} feed category mappings.\n`);
+  } catch (err) {
+    console.warn(`  ⚠ Could not load feed categories: ${err.message}. Defaulting all to 'Company Engineering'.`);
+  }
+
   let successfulFeeds = 0;
   const operations = [];
 
@@ -153,6 +162,8 @@ async function main() {
     if (articles.length > 0) successfulFeeds++;
     for (const article of articles) {
       if (article.link) {
+        // Attach category based on source name
+        article.category = feedCategories[article.source] || "Company Engineering";
         operations.push({
           updateOne: {
             filter: { link: article.link },
@@ -171,10 +182,29 @@ async function main() {
   let newCount = 0;
   if (operations.length > 0) {
     const BATCH_SIZE = 1000;
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 2000;
+
     for (let i = 0; i < operations.length; i += BATCH_SIZE) {
       const batch = operations.slice(i, i + BATCH_SIZE);
-      const result = await collection.bulkWrite(batch, { ordered: false });
-      newCount += result.upsertedCount;
+      let success = false;
+      let attempt = 0;
+
+      while (!success && attempt < MAX_RETRIES) {
+        try {
+          attempt++;
+          const result = await collection.bulkWrite(batch, { ordered: false });
+          newCount += result.upsertedCount;
+          success = true;
+        } catch (error) {
+          console.warn(`\n  ⚠ Batch ${i / BATCH_SIZE + 1} write failed (Attempt ${attempt}/${MAX_RETRIES}): ${error.message}`);
+          if (attempt >= MAX_RETRIES) {
+            throw new Error(`Failed to write batch after ${MAX_RETRIES} attempts. Last error: ${error.message}`);
+          }
+          console.log(`  Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+      }
     }
   }
 

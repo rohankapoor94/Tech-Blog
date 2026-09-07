@@ -45,6 +45,13 @@ export async function GET(request: NextRequest) {
     ? favouriteCompaniesParam.split(",").map((s) => s.trim()).filter(Boolean)
     : undefined;
 
+  const mutedParam = searchParams.get("muted") || "";
+  const mutedSources = mutedParam
+    ? mutedParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : undefined;
+
+  const category = searchParams.get("category") || undefined;
+
   const result = await getArticles({
     sources,
     startDate,
@@ -53,6 +60,8 @@ export async function GET(request: NextRequest) {
     favorites,
     favouritesOnly,
     favouriteCompanies,
+    category,
+    mutedSources,
   });
 
   return NextResponse.json(result);
