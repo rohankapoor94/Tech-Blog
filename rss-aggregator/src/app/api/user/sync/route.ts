@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
   const user = await usersColl.findOne({ _id: userId });
   const finalFavorites = user?.favoriteSources || [];
   const finalMuted = user?.mutedSources || [];
+  const finalCategory = user?.lastSelectedCategory || null;
+  const finalTab = user?.lastActiveTab || null;
 
   const userInteractions = await interactionsColl.find({ userId }).toArray();
   const finalReadStates = userInteractions.filter(i => i.isRead).map(i => i.articleLink);
@@ -78,5 +80,7 @@ export async function POST(request: NextRequest) {
     mutedSources: finalMuted,
     readStates: finalReadStates,
     bookmarks: finalBookmarks,
+    lastSelectedCategory: finalCategory,
+    lastActiveTab: finalTab,
   });
 }

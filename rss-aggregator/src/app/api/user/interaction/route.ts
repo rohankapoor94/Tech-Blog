@@ -56,6 +56,16 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+    else if (type === "setPreferences") {
+      const { selectedCategory, activeTab } = payload;
+      const updateDoc: any = {};
+      if (selectedCategory !== undefined) updateDoc.lastSelectedCategory = selectedCategory;
+      if (activeTab !== undefined) updateDoc.lastActiveTab = activeTab;
+      
+      if (Object.keys(updateDoc).length > 0) {
+        await db.collection("users").updateOne({ _id: userId }, { $set: updateDoc });
+      }
+    }
     else {
       return NextResponse.json({ error: "Invalid action type" }, { status: 400 });
     }

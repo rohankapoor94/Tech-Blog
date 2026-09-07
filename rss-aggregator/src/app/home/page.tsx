@@ -157,7 +157,36 @@ export default function Home() {
     }
     return [];
   });
-  const [activeTab, setActiveTab] = useState<"live" | "curated" | "bookmarks" | "trending">("live");
+  const [activeTab, setActiveTab] = useState<"live" | "curated" | "bookmarks" | "trending">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("rss_active_tab") as any) || "live";
+    }
+    return "live";
+  });
+
+  const setSyncedActiveTab = (tab: "live" | "curated" | "bookmarks" | "trending") => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rss_active_tab", tab);
+    }
+    if (status === "authenticated") {
+      fetch("/api/user/interaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "setPreferences", payload: { activeTab: tab } })
+      }).catch(console.error);
+    }
+  };
+
+  const syncCategoryPreference = (cat: string) => {
+    if (status === "authenticated") {
+      fetch("/api/user/interaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "setPreferences", payload: { selectedCategory: cat } })
+      }).catch(console.error);
+    }
+  };
   const [trendingGroups, setTrendingGroups] = useState<{date: string, label: string, articles: Article[]}[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [showFavouritesOnly, setShowFavouritesOnly] = useState(() => {
@@ -293,6 +322,14 @@ export default function Home() {
         if (data.bookmarks) { setBookmarks(data.bookmarks); localStorage.setItem("rss_bookmarks", JSON.stringify(data.bookmarks)); }
         if (data.readStates) { setReadStates(data.readStates); localStorage.setItem("rss_read_states", JSON.stringify(data.readStates)); }
         if (data.mutedSources) { setMutedSources(data.mutedSources); localStorage.setItem("rss_muted_sources", JSON.stringify(data.mutedSources)); }
+        if (data.lastSelectedCategory && data.lastSelectedCategory !== selectedCategory) {
+          setSelectedCategory(data.lastSelectedCategory);
+          localStorage.setItem("rss_category", data.lastSelectedCategory);
+        }
+        if (data.lastActiveTab && data.lastActiveTab !== activeTab) {
+          setActiveTab(data.lastActiveTab);
+          localStorage.setItem("rss_active_tab", data.lastActiveTab);
+        }
       })
       .catch(console.error);
     }
@@ -920,6 +957,7 @@ export default function Home() {
                           localStorage.setItem("rss_favourites_only", "true");
                           setSelectedCategory("All");
                           localStorage.setItem("rss_category", "All");
+                          syncCategoryPreference("All");
                           if (favouriteCompanies.length > 0) {
                             const favNames = new Set(favouriteCompanies.map(c => c.name));
                             setSelectedSources(prev => prev.filter(s => favNames.has(s)));
@@ -927,6 +965,7 @@ export default function Home() {
                         } else {
                           setSelectedCategory(newCat);
                           localStorage.setItem("rss_category", newCat);
+                          syncCategoryPreference(newCat);
                           setShowFavouritesOnly(false);
                           localStorage.setItem("rss_favourites_only", "false");
                           setSelectedSources([]); // Clear source selection when category changes
@@ -981,7 +1020,7 @@ export default function Home() {
                         placeholder="Search sources..."
                         value={sourceSearch}
                         onChange={(e) => setSourceSearch(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-[var(--color-border)] bg-white focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
                       />
                     </div>
 
@@ -1076,7 +1115,7 @@ export default function Home() {
           {/* Tabs */}
           <div className="flex border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg)] z-10 px-4 md:px-0">
             <button
-              onClick={() => setActiveTab("live")}
+              onClick={() => setSyncedActiveTab("live")}
               className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "live"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
@@ -1085,7 +1124,7 @@ export default function Home() {
               📡 Live Feed
             </button>
             <button
-              onClick={() => setActiveTab("curated")}
+              onClick={() => setSyncedActiveTab("curated")}
               className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "curated"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
@@ -1094,7 +1133,7 @@ export default function Home() {
               📌 Hand Curated
             </button>
             <button
-              onClick={() => setActiveTab("bookmarks")}
+              onClick={() => setSyncedActiveTab("bookmarks")}
               className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "bookmarks"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
@@ -1103,7 +1142,7 @@ export default function Home() {
               📑 Bookmarks
             </button>
             <button
-              onClick={() => setActiveTab("trending")}
+              onClick={() => setSyncedActiveTab("trending")}
               className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "trending"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
@@ -1561,7 +1600,7 @@ function DateRangePicker({
           value={start}
           max={today}
           onChange={(e) => setStart(e.target.value)}
-          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] dark:[color-scheme:dark] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
         />
       </div>
       <div>
@@ -1573,7 +1612,7 @@ function DateRangePicker({
           value={end}
           max={today}
           onChange={(e) => setEnd(e.target.value)}
-          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] dark:[color-scheme:dark] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
         />
       </div>
 
