@@ -29,7 +29,12 @@ import {
   LogIn,
   Sun,
   Moon,
-  Clock
+  Clock,
+  BarChart3,
+  BookOpen,
+  ChevronLeft,
+  Flame,
+  Award
 } from "lucide-react";
 import { useSession, signOut, signIn } from "next-auth/react";
 import Link from "next/link";
@@ -136,7 +141,7 @@ export default function Home() {
   const [sourceSearch, setSourceSearch] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sourcesExpanded, setSourcesExpanded] = useState(true);
+  const [sourcesExpanded, setSourcesExpanded] = useState(false);
   const [favoritesExpanded, setFavoritesExpanded] = useState(true);
   const [favorites, setFavorites] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
@@ -157,14 +162,14 @@ export default function Home() {
     }
     return [];
   });
-  const [activeTab, setActiveTab] = useState<"live" | "curated" | "bookmarks" | "trending">(() => {
+  const [activeTab, setActiveTab] = useState<"live" | "curated" | "bookmarks" | "trending" | "history">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("rss_active_tab") as any) || "live";
     }
     return "live";
   });
 
-  const setSyncedActiveTab = (tab: "live" | "curated" | "bookmarks" | "trending") => {
+  const setSyncedActiveTab = (tab: "live" | "curated" | "bookmarks" | "trending" | "history") => {
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       localStorage.setItem("rss_active_tab", tab);
@@ -209,6 +214,26 @@ export default function Home() {
   const [curatedLoading, setCuratedLoading] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [readingStats, setReadingStats] = useState<{ readToday: number; readLast7Days: number; readLast30Days: number; readAllTime: number }>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("rss_reading_stats");
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return { readToday: 0, readLast7Days: 0, readLast30Days: 0, readAllTime: 0 };
+  });
+  const [readHistory, setReadHistory] = useState<{ articleLink: string; readAt: string; articleData?: Article }[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("rss_read_history");
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return [];
+  });
+  const [showCongratulation, setShowCongratulation] = useState(false);
+
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -322,11 +347,13 @@ export default function Home() {
         if (data.bookmarks) { setBookmarks(data.bookmarks); localStorage.setItem("rss_bookmarks", JSON.stringify(data.bookmarks)); }
         if (data.readStates) { setReadStates(data.readStates); localStorage.setItem("rss_read_states", JSON.stringify(data.readStates)); }
         if (data.mutedSources) { setMutedSources(data.mutedSources); localStorage.setItem("rss_muted_sources", JSON.stringify(data.mutedSources)); }
-        if (data.lastSelectedCategory && data.lastSelectedCategory !== selectedCategory) {
+        if (data.readingStats) { setReadingStats(data.readingStats); localStorage.setItem("rss_reading_stats", JSON.stringify(data.readingStats)); }
+        if (data.readHistory) { setReadHistory(data.readHistory); localStorage.setItem("rss_read_history", JSON.stringify(data.readHistory)); }
+        if (data.lastSelectedCategory && !localStorage.getItem("rss_category")) {
           setSelectedCategory(data.lastSelectedCategory);
           localStorage.setItem("rss_category", data.lastSelectedCategory);
         }
-        if (data.lastActiveTab && data.lastActiveTab !== activeTab) {
+        if (data.lastActiveTab && !localStorage.getItem("rss_active_tab")) {
           setActiveTab(data.lastActiveTab);
           localStorage.setItem("rss_active_tab", data.lastActiveTab);
         }
@@ -336,31 +363,72 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]); // Run once on login
 
-  const handleToggleRead = useCallback((articleLink: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggleRead = useCallback((articleLink: string, e: React.MouseEvent, article?: Article, forceUnread?: boolean) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (status === "unauthenticated") {
       setShowAuthModal(true);
       return;
     }
 
-    setReadStates((prev) => {
-      const exists = prev.includes(articleLink);
-      const isRead = !exists;
-      const next = exists ? prev.filter(l => l !== articleLink) : [...prev, articleLink];
-      localStorage.setItem("rss_read_states", JSON.stringify(next));
-      
-      if (status === "authenticated") {
-        fetch("/api/user/interaction", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "toggleRead", payload: { articleLink, isRead } })
-        }).catch(console.error);
-      }
-      return next;
-    });
-  }, [status, router]);
+    const exists = readStates.includes(articleLink);
+    const isRead = forceUnread ? false : !exists;
+    
+    let next;
+    if (isRead) {
+      next = [...readStates, articleLink];
+    } else {
+      next = readStates.filter((link) => link !== articleLink);
+    }
+    
+    setReadStates(next);
+    localStorage.setItem("rss_read_states", JSON.stringify(next));
+
+    // Optimistic state updates for history and stats
+    if (isRead && article) {
+      setReadHistory((prevHist) => {
+        const filtered = prevHist.filter(h => (h.articleData?.title || h.articleLink) !== (article.title || articleLink));
+        return [{ articleLink, readAt: new Date().toISOString(), articleData: article }, ...filtered];
+      });
+      setReadingStats((prevStats) => {
+        if (prevStats.readAllTime === 0) {
+          setShowCongratulation(true);
+          setTimeout(() => setShowCongratulation(false), 5000);
+        }
+        const newStats = {
+          ...prevStats,
+          readToday: prevStats.readToday + 1,
+          readLast7Days: prevStats.readLast7Days + 1,
+          readLast30Days: prevStats.readLast30Days + 1,
+          readAllTime: prevStats.readAllTime + 1
+        };
+        localStorage.setItem("rss_reading_stats", JSON.stringify(newStats));
+        return newStats;
+      });
+    } else if (!isRead) {
+      setReadHistory((prevHist) => prevHist.filter(h => h.articleLink !== articleLink));
+      setReadingStats((prevStats) => {
+        const newStats = {
+          ...prevStats,
+          readToday: Math.max(0, prevStats.readToday - 1),
+          readLast7Days: Math.max(0, prevStats.readLast7Days - 1),
+          readLast30Days: Math.max(0, prevStats.readLast30Days - 1),
+          readAllTime: Math.max(0, prevStats.readAllTime - 1)
+        };
+        localStorage.setItem("rss_reading_stats", JSON.stringify(newStats));
+        return newStats;
+      });
+    }
+    
+    if (status === "authenticated") {
+      fetch("/api/user/interaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "toggleRead", payload: { articleLink, isRead, article } })
+      }).catch(console.error);
+    }
+  }, [status, router, readStates]);
 
   // ---- Debounce the filter input (300ms) ----
   const filterTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -709,8 +777,8 @@ export default function Home() {
             "linear-gradient(135deg, #C0392B 0%, #D9531E 50%, #E8784A 100%)",
         }}
       >
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex flex-row items-start justify-between gap-2 md:gap-4">
+          <div className="flex items-start md:items-center gap-3 flex-1 min-w-0">
             {/* Hamburger / sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -725,9 +793,9 @@ export default function Home() {
               )}
             </button>
 
-            <div>
+            <div className="flex-1 min-w-0">
               <h1 
-                className="text-2xl md:text-3xl font-bold text-white tracking-widest font-mono uppercase cursor-default select-none"
+                className="text-lg md:text-3xl font-bold text-white tracking-wider md:tracking-widest font-mono uppercase cursor-default select-none leading-tight"
                 onClick={() => {
                   const newCount = clickCount + 1;
                   setClickCount(newCount);
@@ -755,28 +823,39 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+            {status === "authenticated" && (
+              <Link
+                href="/stats"
+                className="flex items-center gap-1.5 text-white hover:text-[var(--color-accent)] transition-colors p-1.5 md:p-2 rounded-full hover:bg-white/10 border border-white/10 shadow-sm"
+                title="View detailed reading stats"
+              >
+                <Flame className="w-4 h-4 md:w-5 md:h-5 text-yellow-300" />
+                <span className="font-bold text-sm md:text-base mr-1">{readingStats.readToday}</span>
+              </Link>
+            )}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="text-white/80 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10 border border-white/10 shadow-sm"
+              className="text-white/80 hover:text-white transition-colors p-1.5 md:p-2 rounded-full hover:bg-white/10 border border-white/10 shadow-sm"
               title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {isDarkMode ? <Sun className="w-4 h-4 md:w-5 md:h-5" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
             </button>
 
             {status === "authenticated" && session.user ? (
               <div className="flex items-center gap-3">
                 {session.user.image ? (
-                  <img src={session.user.image} alt="Avatar" className="w-8 h-8 rounded-full border border-white/20" referrerPolicy="no-referrer" />
+                  <img src={session.user.image} alt="Avatar" className="w-7 h-7 md:w-8 md:h-8 rounded-full border border-white/20" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold uppercase">{session.user.name?.[0] || session.user.email?.[0] || "?"}</div>
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold uppercase">{session.user.name?.[0] || session.user.email?.[0] || "?"}</div>
                 )}
                 <button
                   onClick={handleSignOut}
                   className="text-white/80 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-semibold"
                   title="Sign out"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4 md:hidden" />
+                  <LogOut className="w-4 h-4 hidden md:inline" />
                   <span className="hidden md:inline">Sign out</span>
                 </button>
               </div>
@@ -987,7 +1066,7 @@ export default function Home() {
               )}
 
               {/* Source Filter — Collapsible dropdown with multi-select checkboxes */}
-              <div className={`px-4 pb-4 ${activeTab !== "live" ? "pt-4" : ""}`}>
+              <div className="px-4 pt-4 pb-4 border-t border-[var(--color-border)]">
                 {/* Clickable dropdown header */}
                 <button
                   onClick={() => setSourcesExpanded(!sourcesExpanded)}
@@ -1116,40 +1195,56 @@ export default function Home() {
           <div className="flex border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-bg)] z-10 px-4 md:px-0">
             <button
               onClick={() => setSyncedActiveTab("live")}
-              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "live"
+              className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest transition-colors ${activeTab === "live"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
                 }`}
             >
-              📡 Live Feed
+              <span className="text-sm md:text-base">📡</span>
+              <span className="text-center leading-none">Live Feed</span>
             </button>
             <button
               onClick={() => setSyncedActiveTab("curated")}
-              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "curated"
+              className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest transition-colors ${activeTab === "curated"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
                 }`}
             >
-              📌 Hand Curated
+              <span className="text-sm md:text-base">📌</span>
+              <span className="text-center leading-none">Curated</span>
             </button>
             <button
               onClick={() => setSyncedActiveTab("bookmarks")}
-              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "bookmarks"
+              className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest transition-colors ${activeTab === "bookmarks"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
                 }`}
             >
-              📑 Bookmarks
+              <span className="text-sm md:text-base">📑</span>
+              <span className="text-center leading-none">Bookmarks</span>
             </button>
             <button
               onClick={() => setSyncedActiveTab("trending")}
-              className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === "trending"
+              className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest transition-colors ${activeTab === "trending"
                 ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
                 }`}
             >
-              🔥 Trending
+              <span className="text-sm md:text-base">🔥</span>
+              <span className="text-center leading-none">Trending</span>
             </button>
+            {status === "authenticated" && (
+              <button
+                onClick={() => setSyncedActiveTab("history")}
+                className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 md:py-3 text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest transition-colors ${activeTab === "history"
+                  ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-b-2 border-transparent"
+                  }`}
+              >
+                <span className="text-sm md:text-base">📖</span>
+                <span className="text-center leading-none">History</span>
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto" ref={scrollContainerRef} onScroll={handleScroll}>
@@ -1193,7 +1288,10 @@ export default function Home() {
                             <div className={`absolute right-4 top-3 md:top-2.5 flex items-center gap-2 transition-opacity z-10 ${isBookmarked || isRead ? "opacity-100" : "opacity-100 md:opacity-0 group-hover/row:opacity-100"}`}>
                               {/* Read/Unread Toggle */}
                               <button
-                                onClick={(e) => handleToggleRead(article.link, e)}
+                                onClick={(e) => {
+                                  if (!isRead && readHistory.length === 0) setShowCongratulation(true);
+                                  handleToggleRead(article.link, e, article);
+                                }}
                                 className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                                 title={isRead ? "Mark as unread" : "Mark as read"}
                               >
@@ -1318,14 +1416,29 @@ export default function Home() {
                                 key={`${article.link}-${idx}`}
                                 className="article-row flex flex-col md:flex-row md:items-baseline px-4 md:px-6 py-3 border-b border-[var(--color-border)]/30 gap-1 md:gap-0 relative group/row"
                               >
-                                <button
-                                  onClick={(e) => handleToggleBookmark(article, e)}
-                                  className={`absolute right-4 top-3 opacity-100 transition-opacity z-10 ${isBookmarked ? "md:opacity-100" : "md:opacity-0 group-hover/row:opacity-100"
-                                    }`}
-                                  title={isBookmarked ? "Remove bookmark" : "Add bookmark"}
-                                >
-                                  <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-yellow-500 text-yellow-500" : "text-[var(--color-text-secondary)] hover:text-yellow-500"}`} />
-                                </button>
+                                {(() => {
+                                  const isRead = readStates.includes(article.link);
+                                  return (
+                                    <div className={`absolute right-4 top-3 flex items-center gap-2 transition-opacity z-10 ${isBookmarked || isRead ? "opacity-100" : "opacity-100 md:opacity-0 group-hover/row:opacity-100"}`}>
+                                      <button
+                                        onClick={(e) => {
+                                          if (!isRead && readHistory.length === 0) setShowCongratulation(true);
+                                          handleToggleRead(article.link, e, article);
+                                        }}
+                                        className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                                        title={isRead ? "Mark as unread" : "Mark as read"}
+                                      >
+                                        {isRead ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                      </button>
+                                      <button
+                                        onClick={(e) => handleToggleBookmark(article, e)}
+                                        title={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+                                      >
+                                        <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-yellow-500 text-yellow-500" : "text-[var(--color-text-secondary)] hover:text-yellow-500"}`} />
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
 
                                 <div className="flex-shrink-0 w-full md:w-32 text-xs font-mono text-[var(--color-text-secondary)]">
                                   {format(parseISO(article.publishDate), "MMM d, yyyy")}
@@ -1386,13 +1499,30 @@ export default function Home() {
                           key={`${article.link}-${idx}`}
                           className="article-row flex flex-col md:flex-row md:items-baseline px-4 md:px-6 py-3 border-b border-[var(--color-border)]/30 gap-1 md:gap-0 relative group/row"
                         >
-                          <button
-                            onClick={(e) => handleToggleBookmark(article, e)}
-                            className="absolute right-4 top-3 opacity-100 transition-opacity z-10"
-                            title="Remove bookmark"
-                          >
-                            <Bookmark className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                          </button>
+                          {(() => {
+                            const isRead = readStates.includes(article.link);
+                            const isBookmarked = bookmarks.some(b => b.link === article.link);
+                            return (
+                              <div className={`absolute right-4 top-3 flex items-center gap-2 transition-opacity z-10 ${isBookmarked || isRead ? "opacity-100" : "opacity-100 md:opacity-0 group-hover/row:opacity-100"}`}>
+                                <button
+                                  onClick={(e) => {
+                                    if (!isRead && readHistory.length === 0) setShowCongratulation(true);
+                                    handleToggleRead(article.link, e, article);
+                                  }}
+                                  className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                                  title={isRead ? "Mark as unread" : "Mark as read"}
+                                >
+                                  {isRead ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                                <button
+                                  onClick={(e) => handleToggleBookmark(article, e)}
+                                  title="Remove bookmark"
+                                >
+                                  <Bookmark className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                                </button>
+                              </div>
+                            );
+                          })()}
 
                           <div className="flex-shrink-0 w-full md:w-32 text-xs font-mono text-[var(--color-text-secondary)]">
                             {article.publishDate ? format(parseISO(article.publishDate), "MMM d, yyyy") : "Unknown date"}
@@ -1468,6 +1598,30 @@ export default function Home() {
                             key={`${article.link}-${idx}`}
                             className="article-row flex flex-col md:flex-row md:items-baseline px-4 md:px-6 py-3 border-b border-[var(--color-border)]/30 gap-1 md:gap-0 relative group/row"
                           >
+                            {(() => {
+                              const isRead = readStates.includes(article.link);
+                              const isBookmarked = bookmarks.some(b => b.link === article.link);
+                              return (
+                                <div className={`absolute right-4 top-3 flex items-center gap-2 transition-opacity z-10 ${isBookmarked || isRead ? "opacity-100" : "opacity-100 md:opacity-0 group-hover/row:opacity-100"}`}>
+                                  <button
+                                    onClick={(e) => {
+                                      if (!isRead && readHistory.length === 0) setShowCongratulation(true);
+                                      handleToggleRead(article.link, e, article);
+                                    }}
+                                    className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                                    title={isRead ? "Mark as unread" : "Mark as read"}
+                                  >
+                                    {isRead ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  </button>
+                                  <button
+                                    onClick={(e) => handleToggleBookmark(article, e)}
+                                    title={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+                                  >
+                                    <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-yellow-500 text-yellow-500" : "text-[var(--color-text-secondary)] hover:text-yellow-500"}`} />
+                                  </button>
+                                </div>
+                              );
+                            })()}
                             <div className="flex-shrink-0 w-full md:w-48 pr-8 md:pr-4">
                               <a
                                 href={sourceMeta[article.source] || "#"}
@@ -1507,6 +1661,98 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            ) : activeTab === "history" && status === "authenticated" ? (
+              // --- READ HISTORY TAB ---
+              <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto py-4">
+                <div className="px-4 md:px-6 mb-6">
+                  <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-[var(--color-accent)]" />
+                    Read History
+                  </h2>
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    {readHistory.length} articles read
+                  </p>
+                </div>
+                {readHistory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-center px-8">
+                    <BookOpen className="h-12 w-12 text-[var(--color-text-secondary)]/30 mb-4" />
+                    <p className="text-sm text-[var(--color-text-secondary)] mb-1">No read history yet</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]/60">
+                      Articles you mark as read will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  (() => {
+                    // Group by date
+                    const grouped: Record<string, typeof readHistory> = {};
+                    readHistory.forEach(item => {
+                      const dateKey = item.readAt ? format(new Date(item.readAt), "yyyy-MM-dd") : "Unknown";
+                      if (!grouped[dateKey]) grouped[dateKey] = [];
+                      grouped[dateKey].push(item);
+                    });
+                    return Object.entries(grouped).map(([dateKey, items]) => (
+                      <div key={dateKey} className="mb-6">
+                        <div className="px-4 md:px-6 py-2 bg-[var(--color-sidebar-bg)] border-y border-[var(--color-border)]">
+                          <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider font-mono">
+                            {dateKey !== "Unknown" ? format(new Date(dateKey), "MMM dd, yyyy") : "Unknown Date"}
+                          </span>
+                          <span className="text-[10px] text-[var(--color-text-secondary)] ml-2">
+                            ({items.length} {items.length === 1 ? "article" : "articles"})
+                          </span>
+                        </div>
+                        {items.map((item, i) => {
+                          const articleData = item.articleData;
+                          const displayTitle = articleData?.title || item.articleLink.split("/").pop() || item.articleLink;
+                          const displaySource = articleData?.source || "";
+                          return (
+                            <div
+                              key={`${dateKey}-${i}`}
+                              className="block px-4 md:px-6 py-4 border-b border-[var(--color-border)]/30 hover:bg-[var(--color-row-hover)] transition-colors group"
+                            >
+                              <div className="flex items-start gap-3">
+                                <Eye className="h-4 w-4 text-green-500/50 mt-1 flex-shrink-0" />
+                                <a
+                                  href={item.articleLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 min-w-0"
+                                >
+                                  <p className="text-base md:text-lg font-semibold text-[var(--color-text-link)] group-hover:text-[var(--color-accent)] transition-colors leading-snug">
+                                    {displayTitle}
+                                  </p>
+                                  <div className="flex items-center gap-3 mt-2">
+                                    {displaySource && (
+                                      <span className="text-xs text-[var(--color-text-secondary)] font-mono uppercase tracking-wider bg-[var(--color-sidebar-bg)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">
+                                        {displaySource}
+                                      </span>
+                                    )}
+                                    {item.readAt && (
+                                      <span className="text-xs flex items-center gap-1 text-[var(--color-text-secondary)]">
+                                        <Clock className="h-3 w-3" />
+                                        {format(new Date(item.readAt), "h:mm a")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </a>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleToggleRead(item.articleLink, e, item.articleData, true);
+                                  }}
+                                  className="p-2 text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors opacity-100"
+                                  title="Remove from history"
+                                >
+                                  <EyeOff className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ));
+                  })()
                 )}
               </div>
             ) : null}
@@ -1558,6 +1804,28 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Congratulatory Toast */}
+      {showCongratulation && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] animate-bounce-in">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 border border-green-400/30">
+            <div className="bg-white/20 p-2 rounded-full">
+              <Award className="w-6 h-6 text-yellow-300" />
+            </div>
+            <div>
+              <p className="font-bold text-lg leading-tight">First Article Read!</p>
+              <p className="text-xs text-white/80">Congrats! Keep the momentum going. 🚀</p>
+            </div>
+            <button 
+              onClick={() => setShowCongratulation(false)}
+              className="ml-4 p-1 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -75,6 +75,38 @@ export async function POST(request: NextRequest) {
     .sort((a, b) => (b.bookmarkedAt?.getTime() || 0) - (a.bookmarkedAt?.getTime() || 0))
     .map(i => i.articleData);
 
+  // Deduplicate by title to prevent changing URLs (like tracking parameters) from creating duplicate entries
+  const uniqueInteractions = [];
+  const seenIntTitles = new Set();
+  for (const i of userInteractions) {
+    const title = i.articleData?.title || i.articleLink;
+    if (!seenIntTitles.has(title)) {
+      seenIntTitles.add(title);
+      uniqueInteractions.push(i);
+    }
+  }
+
+  // 5. Compute reading stats using deduplicated interactions
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const readInteractions = uniqueInteractions.filter(i => i.isRead && i.readAt);
+  const readToday = readInteractions.filter(i => new Date(i.readAt) >= oneDayAgo).length;
+  const readLast7Days = readInteractions.filter(i => new Date(i.readAt) >= sevenDaysAgo).length;
+  const readLast30Days = readInteractions.filter(i => new Date(i.readAt) >= thirtyDaysAgo).length;
+  const readAllTime = uniqueInteractions.filter(i => i.isRead).length;
+
+  // 6. Build read history (all read articles with timestamps, sorted newest first)
+  const readHistory = readInteractions
+    .sort((a, b) => new Date(b.readAt).getTime() - new Date(a.readAt).getTime())
+    .map(i => ({
+      articleLink: i.articleLink,
+      readAt: i.readAt,
+      ...(i.articleData ? { articleData: i.articleData } : {}),
+    }));
+
   return NextResponse.json({
     favorites: finalFavorites,
     mutedSources: finalMuted,
@@ -82,5 +114,12 @@ export async function POST(request: NextRequest) {
     bookmarks: finalBookmarks,
     lastSelectedCategory: finalCategory,
     lastActiveTab: finalTab,
+    readingStats: {
+      readToday,
+      readLast7Days,
+      readLast30Days,
+      readAllTime,
+    },
+    readHistory,
   });
 }

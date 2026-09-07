@@ -33,10 +33,12 @@ export async function POST(request: NextRequest) {
       }
     }
     else if (type === "toggleRead") {
-      const { articleLink, isRead } = payload;
+      const { articleLink, isRead, article } = payload;
+      const updateDoc: any = { isRead, ...(isRead ? { readAt: new Date() } : {}) };
+      if (article) updateDoc.articleData = article;
       await db.collection("user_interactions").updateOne(
         { userId, articleLink },
-        { $set: { isRead } },
+        { $set: updateDoc },
         { upsert: true }
       );
     }

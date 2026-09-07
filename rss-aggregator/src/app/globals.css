@@ -50,6 +50,11 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* ----- Interactive Elements ----- */
+button, a, [role="button"], select, summary, label[for] {
+  cursor: pointer;
+}
+
 /* ----- Scrollbar ----- */
 ::-webkit-scrollbar {
   width: 6px;
