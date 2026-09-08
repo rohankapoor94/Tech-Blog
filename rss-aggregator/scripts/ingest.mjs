@@ -240,6 +240,15 @@ async function main() {
     process.exit(1);
   }
 
+  // 6. Run Category Backfill
+  console.log(`\n🔄 Running category backfill to ensure consistency...`);
+  try {
+    execSync(`node scripts/backfill-categories.mjs`, { cwd: PROJECT_ROOT, stdio: "inherit" });
+  } catch (error) {
+    console.error(`\n❌ Failed to run category backfill: ${error.message}`);
+    process.exit(1);
+  }
+
   console.log(`\n🎉 All ingestion tasks complete! Data written to MongoDB!`);
   
   // Explicitly terminate the process to prevent hanging from lingering socket connections

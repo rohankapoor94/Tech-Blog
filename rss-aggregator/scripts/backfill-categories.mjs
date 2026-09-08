@@ -29,7 +29,7 @@ async function main() {
   for (const source of sources) {
     const category = feedCategories[source] || "Company Engineering";
     const result = await collection.updateMany(
-      { source: source, category: { $exists: false } },
+      { source: source, category: { $ne: category } },
       { $set: { category: category } }
     );
     if (result.modifiedCount > 0) {
